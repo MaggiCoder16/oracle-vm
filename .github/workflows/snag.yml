@@ -1,20 +1,17 @@
-# File: .github/workflows/vm_snag.yml
-name: OCI VM Snagger
+name: Oracle VM Snagger
 
+# --- Schedule every 6 hours ---
 on:
-  push:
-    branches:
-      - main
   schedule:
-    # Runs every 6 hours: 0:00, 6:00, 12:00, 18:00 UTC
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # every 6 hours
+  workflow_dispatch:       # allows manual trigger
 
 jobs:
   snag_vm:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 360    # 6 hours max
     steps:
-      # 1️⃣ Checkout repository
+      # 1️⃣ Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -22,25 +19,22 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: '3.11'
 
-      # 3️⃣ Install OCI Python SDK (optional, your script uses CLI, not SDK)
-      - name: Install OCI Python SDK
-        run: |
-          python -m pip install --upgrade pip
-          pip install oci
+      # 3️⃣ Upgrade pip (optional but recommended)
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       # 4️⃣ Install OCI CLI non-interactively
       - name: Install OCI CLI
         run: |
           bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
-          echo "export PATH=$PATH:/home/runner/bin" >> $GITHUB_ENV
+          echo "PATH=$PATH:/home/runner/bin" >> $GITHUB_ENV  # Correct PATH for next step
 
-      # 5️⃣ Run your script with live logs
+      # 5️⃣ Run VM snagger Python script (logging inside Python)
       - name: Run VM Snagger Script
-        run: python -u vm_snag.py | tee vm_snag.log
-        env:
-          PATH: ${{ env.PATH }}:/home/runner/bin  # ensure 'oci' is found
+        shell: bash
+        run: python -u vm_snag.py
 
       # 6️⃣ Upload logs as artifact
       - name: Upload Logs
