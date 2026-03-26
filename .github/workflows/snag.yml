@@ -27,7 +27,7 @@ jobs:
 
       - name: Install OCI CLI
         run: |
-          curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh | bash
+          bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
           echo 'export PATH=$PATH:/home/runner/bin' >> $GITHUB_ENV
 
       - name: Run VM Snagger Script
