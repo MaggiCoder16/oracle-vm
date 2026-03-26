@@ -27,4 +27,4 @@ jobs:
           pip install oci
 
       - name: Run VM Snagger Script
-        run: python vm_snag.py
+        run: python -u vm_snag.py
