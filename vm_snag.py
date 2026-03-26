@@ -2,7 +2,9 @@ import subprocess
 import json
 import time
 from datetime import datetime
+import sys
 
+# --- FINAL VERIFIED CONFIGURATION ---
 IMAGE_ID = "ocid1.image.oc1.ap-mumbai-1.aaaaaaaagj6eib2rslvji6xgh2e32naoyyfyedm2iy5mcpm2hfqphtixmbpq"
 COMPARTMENT_ID = "ocid1.tenancy.oc1..aaaaaaaawcbqn5ajlg573v5aetw6j7hxpxyvzpp3cj7e3d3pnv2xocdzmvbq"
 SUBNET_ID = "ocid1.subnet.oc1.ap-mumbai-1.aaaaaaaauukelgwzticy2xr5az7xnr57rtfo223usf7wr5kpubqmjwbugmwq"
@@ -10,10 +12,17 @@ AD_NAME = "igqw:AP-MUMBAI-1-AD-1"
 SSH_KEY = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDPxk2e4zDA7Maw92PCykPpeEkVLTVjA25uohXgtLn691n2c+RjD9VNDSZ343ZaDYfZzf4sK3BT+VEQH0Iui0+iBAlGntcarkWZx0TEcHakNi4Hm2cHDC2OxK/z8Xb9DpZ1QII8604CQYRXzyP52a3ueT+r+26K/Um/O0WaRKlCLKdcfJ2r1x7FgpGz0z8EvNdAEQap0jgFh3KD0Ip2dYdcLLKo7Bff0l2N4vVOoqJNTn0vrVPC0PnavuMSkKBtUgpkgvAhmu07WBMI8vzurV5f+3AzSeegNP/ZLuWVn6vEAzihgR3ht6uJJ8YcphNv+ufMUjVB04C1Orme5TI0yCjv thisa@Aarav"
 
 FAULT_DOMAINS = ["FAULT-DOMAIN-1", "FAULT-DOMAIN-2", "FAULT-DOMAIN-3"]
+LOG_FILE = "vm_snag.log"
+
+def log(msg):
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    line = f"[{timestamp}] {msg}"
+    print(line, flush=True)
+    with open(LOG_FILE, "a") as f:
+        f.write(line + "\n")
 
 def launch_instance(attempt_num, fault_domain):
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    print(f"[{timestamp}] Attempt #{attempt_num} to snag VM in {fault_domain}...")
+    log(f"Attempt #{attempt_num} to snag VM in {fault_domain}...")
 
     shape_config = json.dumps({"ocpus": 4, "memoryInGBs": 24})
     metadata = json.dumps({"ssh_authorized_keys": SSH_KEY})
@@ -35,20 +44,20 @@ def launch_instance(attempt_num, fault_domain):
     try:
         process = subprocess.run(command, capture_output=True, text=True, timeout=300)
         if process.returncode == 0:
-            print("\033[92m[SUCCESS] VM created successfully!\033[0m")
+            log("[SUCCESS] VM created successfully!")
             return True
         else:
             err = process.stderr
             if "Out of host capacity" in err or "500" in err or "LimitExceeded" in err:
-                print("\033[93m[CAPACITY] IDs are correct! VM not available in this fault domain. Retrying...\033[0m")
+                log("[CAPACITY] VM not available in this fault domain. Retrying...")
             elif "TooManyRequests" in err or "429" in err:
-                print("\033[93m[THROTTLE] Too many requests! Waiting longer before retry...\033[0m")
+                log("[THROTTLE] Too many requests! Waiting longer before retry...")
                 time.sleep(120)
             else:
-                print(f"\033[91m[ERROR]\033[0m\n{err}")
+                log(f"[ERROR]\n{err}")
             return False
     except Exception as e:
-        print(f"System Error: {e}")
+        log(f"System Error: {e}")
         return False
 
 attempt = 1
